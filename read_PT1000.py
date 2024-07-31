@@ -29,10 +29,12 @@ command = '1'
 
 while True:
     time.sleep(0.5)
+    
+    #print('reading...')
 
     data = ser.readline()[:-2] #the last bit gets rid of the new-line chars
     #if data:
-    #	print(data)
+    # 	print(data)
 
     x = ser.write(('1\r\n').encode())
     out = ''

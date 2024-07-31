@@ -66,13 +66,13 @@ void loop() {
     Serial.print(" ");
     Serial.print(thermo2.temperature(RNOMINAL, RREF));
     Serial.print(" ");
-    Serial.print(thermo3.temperature(RNOMINAL, RREF, 1));
+    Serial.print(thermo3.temperature(RNOMINAL, RREF));
     Serial.print(" ");
-    Serial.print(thermo4.temperature(RNOMINAL, RREF, 1));
+    Serial.print(thermo4.temperature(RNOMINAL, RREF));
     Serial.print(" ");
-    Serial.print(thermo5.temperature(RNOMINAL, RREF, 1));
+    Serial.print(thermo5.temperature(RNOMINAL, RREF));
     Serial.print(" ");
-    Serial.print(thermo6.temperature(RNOMINAL, RREF, 1));
+    Serial.print(thermo6.temperature(RNOMINAL, RREF));
     Serial.print("\n");
         
     // Check and print any faults
