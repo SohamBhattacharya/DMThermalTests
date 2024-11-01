@@ -1,58 +1,55 @@
 #!/usr/bin/env python3
 
-import matplotlib
-# matplotlib.use("Agg")  # Use the "Agg" backend for non-interactive plotting
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from time import sleep, strftime, time
 from datetime import datetime
-import sys
 import argparse
 import os
 # import ROOT
 import numpy as np
 
 
+
+
 parser = argparse.ArgumentParser(
-    description = "DM thermal test plot",
+    description = "DM thermal test plot", 
     formatter_class = argparse.ArgumentDefaultsHelpFormatter
 )
 parser.add_argument(
-    "--run",
-    required = True,
-    type = int,
+    "--run", 
+    required = True, 
+    type = int, 
     help = "Run number"
 )
 parser.add_argument(
-    "--dmid",
-    required = True,
-    type = str,
+    "--dmid", 
+    required = True, 
+    type = str, 
     help = "DM ID (barcode)"
 )
 parser.add_argument(
-    "--batch",
-    required = False,
-    action = "store_true",
+    "--batch", 
+    required = False, 
+    action = "store_true", 
     help = "Batch mode; will not display interactive plots"
 )
 parser.add_argument(
-    "--logdir",
-    required = False,
-    type = str,
-    default = "/data/QAQC_DM",
+    "--logdir", 
+    required = False, 
+    type = str, 
+    default = "/data/QAQC_DM", 
     help = "Directory with the temperature logs"
 )
 parser.add_argument(
-    "--plotdir",
-    required = False,
-    type = str,
-    default = "/data/QAQC_DM",
+    "--plotdir", 
+    required = False, 
+    type = str, 
+    default = "/data/QAQC_DM", 
     help = "Directory to save plots in"
 )
 parser.add_argument(
-    "--offset",
-    required = False,
-    action = "store_true",
+    "--offset", 
+    required = False, 
+    action = "store_true", 
     help = "Will do offset correction"
 )
 
@@ -80,16 +77,35 @@ if (not args.batch) :
 
 mytime = []
 mysecs = []
-TCopperR= []
-TCopperL= []
-TTopL= []
-TTopR= []
-TBottomL= []
-TBottomR= []
-DeltaTTopL= []
-DeltaTTopR= []
-DeltaTBottomL= []
-DeltaTBottomR= []
+TCopperR = []
+TCopperL = []
+TTopL = []
+TTopR = []
+TBottomL = []
+TBottomR = []
+DeltaTTopL = []
+DeltaTTopR = []
+DeltaTBottomL = []
+DeltaTBottomR = []
+currents = []
+voltages = []
+powers = []
+
+
+def str_to_float(s) :
+    
+    f = None
+    
+    try :
+        
+        f = float(s)
+    
+    except ValueError :
+        
+        print(f"Could not convert {s} to float")
+        pass
+    
+    return f
 
 
 # draw function ---file
@@ -99,42 +115,61 @@ def graph():
     
     title = f"DM {args.dmid}"
     
-    plt.figure(figsize=(10, 10)) 
-    plt.subplot(211)
-    plt.plot(mysecs,TCopperL,color="black",linestyle="dotted",label="Copper left")
-    plt.plot(mysecs,TCopperR,color="black",linestyle="dashed",label="Copper right") 
-    plt.plot(mysecs,TTopL,color="red",label="Top left")
-    plt.plot(mysecs,TTopR,color="orange",label="Top right")
-    plt.plot(mysecs,TBottomL,color="blue",label="Bottom left")
-    plt.plot(mysecs,TBottomR,color="green",label="Bottom right")
-    plt.xlabel("Time elapsed [min]")
-    plt.ylabel("Temperature [°C]")
-    plt.grid()
-    plt.ylim([5, 50])
-    plt.legend(loc="upper left", fontsize="small", shadow=True, title = title)
-
+    l_drawn_objects = []
     
-    plt.subplot(212)
-    plt.plot(mysecs,DeltaTTopL,color="red",label="Top left")
-    plt.plot(mysecs,DeltaTTopR,color="orange",label="Top right")
-    plt.plot(mysecs,DeltaTBottomL,color="blue",label="Bottom left")
-    plt.plot(mysecs,DeltaTBottomR,color="green",label="Bottom right")
-    plt.xlabel("Time elapsed [min]")
-    plt.ylabel("ΔT [°C]")
-    plt.grid()
-    plt.ylim([-35, 5])
-    plt.legend(loc="upper right", fontsize="small", shadow=True, title = title)
-    plt.text(0,-22, f"max ΔT [°C] = {DeltaTTopLMin:.2f}, {DeltaTTopLMin-DeltaTAvg:.2f} wrt avg", color="red")
-    plt.text(0,-24, f"max ΔT [°C] = {DeltaTTopRMin:.2f}, {DeltaTTopRMin-DeltaTAvg:.2f} wrt avg", color="orange")
-    plt.text(0,-26, f"max ΔT [°C] = {DeltaTBottomLMin:.2f}, {DeltaTBottomLMin-DeltaTAvg:.2f} wrt avg", color="blue")
-    plt.text(0,-28, f"max ΔT [°C] = {DeltaTBottomRMin:.2f}, {DeltaTBottomRMin-DeltaTAvg:.2f} wrt avg", color="green")
-    plt.text(0,-30, f"avg(max ΔT) [°C] = {DeltaTAvg:.2f}", color="magenta")
-
-    plt.tight_layout()
-    # plt.show()
+    fig = plt.figure(figsize = (10, 10))
     
-    plt.savefig(plot_file)
-    #plt.close()
+    fontdict = {"weight": "bold"}
+    
+    ax_upr_l = fig.add_subplot(2, 1, 1)
+    l_drawn_objects.extend(ax_upr_l.plot(mysecs, TCopperL, color = "black", linestyle = "dotted", label = "Left PT1000"))
+    l_drawn_objects.extend(ax_upr_l.plot(mysecs, TCopperR, color = "black", linestyle = "dashed", label = "Right PT1000"))
+    l_drawn_objects.extend(ax_upr_l.plot(mysecs, TTopL, color = "red", label = "Top left RTD"))
+    l_drawn_objects.extend(ax_upr_l.plot(mysecs, TTopR, color = "orange", label = "Top right RTD"))
+    l_drawn_objects.extend(ax_upr_l.plot(mysecs, TBottomL, color = "blue", label = "Bottom left RTD"))
+    l_drawn_objects.extend(ax_upr_l.plot(mysecs, TBottomR, color = "green", label = "Bottom right RTD"))
+    ax_upr_l.set_xlabel("Time elapsed [min]", fontdict = fontdict)
+    ax_upr_l.set_ylabel("Temperature [°C]", fontdict = fontdict)
+    ax_upr_l.grid()
+    ax_upr_l.set_ylim([5, 50])
+    ax_upr_l.legend(loc = "upper left", fontsize = "medium", shadow = False, title = title, title_fontproperties = fontdict)
+    
+    ax_upr_r = ax_upr_l.twinx()
+    l_drawn_objects.extend(ax_upr_r.plot(mysecs, powers, color = "gray", linestyle = "dashdot", label = "Power drawn"))
+    ax_upr_r.set_ylabel("Power [W]", fontdict = fontdict)
+    #ax_upr_r.grid()
+    ax_upr_r.set_ylim([0, 10])
+    ax_upr_r.legend(loc = "upper right", fontsize = "medium", shadow = False)
+    
+    #ax_upr_l.legend(
+    #    handles = l_drawn_objects,
+    #    labels = [_obj.get_label() for _obj in l_drawn_objects],
+    #    loc = "upper left",
+    #    fontsize = "medium",
+    #    shadow = False,
+    #    title = title
+    #)
+    
+    ax_lwr = fig.add_subplot(2, 1, 2)
+    ax_lwr.plot(mysecs, DeltaTTopL, color = "red", label = "Top left RTD")
+    ax_lwr.plot(mysecs, DeltaTTopR, color = "orange", label = "Top right RTD")
+    ax_lwr.plot(mysecs, DeltaTBottomL, color = "blue", label = "Bottom left RTD")
+    ax_lwr.plot(mysecs, DeltaTBottomR, color = "green", label = "Bottom right RTD")
+    ax_lwr.plot(mysecs, np.average([DeltaTTopL, DeltaTTopR, DeltaTBottomL, DeltaTBottomR], axis = 0), color = "magenta", label = "Average")
+    ax_lwr.set_xlabel("Time elapsed [min]", fontdict = fontdict)
+    ax_lwr.set_ylabel("ΔT [°C]", fontdict = fontdict)
+    ax_lwr.grid()
+    ax_lwr.set_ylim([-35, 5])
+    ax_lwr.legend(loc = "upper right", fontsize = "medium", shadow = False, title = title, title_fontproperties = {"weight": "bold"})
+    ax_lwr.text(0, -22, f"max ΔT [°C] = {DeltaTTopLMin:.2f}, {DeltaTTopLMin-DeltaTAvg:.2f} wrt avg", color = "red")
+    ax_lwr.text(0, -24, f"max ΔT [°C] = {DeltaTTopRMin:.2f}, {DeltaTTopRMin-DeltaTAvg:.2f} wrt avg", color = "orange")
+    ax_lwr.text(0, -26, f"max ΔT [°C] = {DeltaTBottomLMin:.2f}, {DeltaTBottomLMin-DeltaTAvg:.2f} wrt avg", color = "blue")
+    ax_lwr.text(0, -28, f"max ΔT [°C] = {DeltaTBottomRMin:.2f}, {DeltaTBottomRMin-DeltaTAvg:.2f} wrt avg", color = "green")
+    ax_lwr.text(0, -30, f"avg(max ΔT) [°C] = {DeltaTAvg:.2f}", color = "magenta")
+    ax_lwr.text(0, -32, f"max power [W] = {np.max(powers):.2f}", color = "black")
+
+    fig.tight_layout()
+    fig.savefig(plot_file)
     
     print()
     print(f"Produced plot: {plot_file}")
@@ -177,8 +212,8 @@ it = 0
 with open(str(file), "r") as fin:
     #for line in fin.readlines() [-200]:
     for line in fin.readlines():
-        readings = line.strip().replace(",", " ").split()
-        if len(readings) != 8:
+        readings = line.strip().replace(", ", " ").split()
+        if len(readings) != 10:
             continue
         
         mytime.append(datetime.strptime(readings[0]+" "+readings[1], "%Y-%m-%d %H:%M:%S"))
@@ -207,7 +242,21 @@ with open(str(file), "r") as fin:
         TTopR.append(float(readings[0+2]))
         TBottomL.append(float(readings[2+2]))
         TBottomR.append(float(readings[1+2]))
-
+        
+        # Exclude the unit 'A' end character
+        current = str_to_float(readings[-2][:-1])
+        current = current if (current and current > 0) else 0
+        
+        # Exclude the unit 'V' end character
+        voltage = str_to_float(readings[-1][:-1])
+        voltage = voltage if (voltage and voltage > 0) else 0
+        
+        power = current*voltage
+        
+        currents.append(current)
+        voltages.append(voltages)
+        powers.append(power)
+        
         # calibration points        
         if it < nPointsOffset:
             TCopperROffset += TCopperR[-1]

@@ -161,3 +161,8 @@ cython_debug/
 
 # log files
 *.log
+logs/
+
+# vscode
+*.code-workspace
+.vscode*
