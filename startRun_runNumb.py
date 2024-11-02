@@ -9,7 +9,7 @@ from subprocess import Popen, PIPE
 from optparse import OptionParser
 from datetime import datetime 
 
-sys.path.append("/home/cptlab1/Documents/BTL/TXP3510P/")
+sys.path.append(os.path.abspath("../TXP3510P/"))
 from TXP3510PWrapper import TXP3510P
 
 parser = argparse.ArgumentParser(
@@ -28,7 +28,8 @@ args = parser.parse_args()
 # file that contains last run number
 log_dir = "/data/QAQC_DM"
 last_run_number_file = f"{log_dir}/lastRunNumber.txt"
-script_dir = ("/home/cptlab1/Documents/BTL/DMThermalTests")
+#script_dir = ("/home/cptlab1/Documents/BTL/DMThermalTests")
+script_dir = os.getcwd()
 
 os.system(f"mkdir -p {log_dir}")
 

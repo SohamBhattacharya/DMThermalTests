@@ -1,5 +1,6 @@
 #! /usr/bin/python
 
+import os
 import serial
 import sys
 import time
@@ -7,7 +8,7 @@ import logging
 
 from optparse import OptionParser
 
-sys.path.append("/home/cptlab1/Documents/BTL/TXP3510P/")
+sys.path.append(os.path.abspath("../TXP3510P/"))
 from TXP3510PWrapper import TXP3510P
 
 parser = OptionParser()
