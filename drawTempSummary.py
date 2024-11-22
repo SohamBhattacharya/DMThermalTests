@@ -1,13 +1,9 @@
 #! /usr/bin/env python3
 
-import os
-import shutil
 import glob
-import math
-import array
-import sys
-import time
-
+import numpy
+import os
+import re
 import ROOT
 #import tdrstyle
 
@@ -27,58 +23,70 @@ def expand_range(rng):
 
 
 
-data_path = '/data1/DMQAQC/PRODUCTION/'
+data_path = '../data/QAQC_DM/plots_w-offset/'
+#data_path = '../data/QAQC_DM/plots_wo-offset/'
 
-plotDir = '/data1/html/'+data_path+'/summaryPlots/'
-runs = ['7-9','11-19','21-23','25-28','33','40-46','49','51-52','54-56', '58-61','65-66', '68-73', '75-78','80-83','85-89', '104-105','110-111', '113-117', '124-125']
+plotDir = f'{data_path}/summary_plots/'
+os.system(f"mkdir -p {plotDir}")
 
-#plotDir = '/data1/html/'+data_path+'/summaryPlots_runs7-46/'
-#runs = ['7-9','11-19','21-23','25-28','33','40-46']
+#runs = ['7-9','11-19','21-23','25-28','33','40-46','49','51-52','54-56', '58-61','65-66', '68-73', '75-78','80-83','85-89', '104-105','110-111', '113-117', '124-125']
 
-#plotDir = '/data1/html/'+data_path+'/summaryPlots_runs49-67/'
-#runs = ['49','51-52','54-61','63','65-67']
-
-
-#plotDir = '/data1/html/'+data_path+'/summaryPlots_reproducibility/'
-#runs = ['23-24','29-32']
-
-run_list = expand_range(runs)                                                                                                                                            
+#run_list = expand_range(runs)
 print('Plot dir: ', plotDir)
-print('Runs:', run_list)
+#print('Runs:', run_list)
 
 
-hDeltaTMean = ROOT.TH1F('hDeltaTMean','hDeltaTMean', 25, -27, -21)
-hDeltaTRMS  = ROOT.TH1F('hDeltaTRMS','hDeltaTRMS', 25, 0, 1)
+hDeltaTMean = ROOT.TH1F('hDeltaTMean','hDeltaTMean', 500, -25, -15)
+hDeltaTRMS  = ROOT.TH1F('hDeltaTRMS','hDeltaTRMS', 100, 0, 2)
 hDeltaTTopLRatio = ROOT.TH1F('hDeltaTTopLRatio','hDeltaTTopLRatio', 100, 0, 5)  
 hDeltaTTopRRatio = ROOT.TH1F('hDeltaTTopRRatio','hDeltaTTopRRatio', 100, 0, 5)  
 hDeltaTBottomLRatio = ROOT.TH1F('hDeltaTBottomLRatio','hDeltaTBottomLRatio', 100, 0, 5)  
 hDeltaTBottomRRatio = ROOT.TH1F('hDeltaTBOttomRRatio','hDeltaTBottomRRatio', 100, 0, 5)  
-hDeltaTRMS_after2min  = ROOT.TH1F('hDeltaTRMS_after2min','hDeltaTRMS_after2min', 80, 0, 2)
-hDeltaTRMS_after4min  = ROOT.TH1F('hDeltaTRMS_after4min','hDeltaTRMS_after4min', 80, 0, 2)
+hDeltaTRMS_after2min  = ROOT.TH1F('hDeltaTRMS_after2min','hDeltaTRMS_after2min', 100, 0, 2)
+hDeltaTRMS_after4min  = ROOT.TH1F('hDeltaTRMS_after4min','hDeltaTRMS_after4min', 100, 0, 2)
 hDeltaTRMS_ratio  = ROOT.TH1F('hDeltaTRMS_ratio','hDeltaTRMS_ratio', 50, 0, 2)
 
 time1 = 2.
 time2 = 4. 
 
-
-for fname in glob.glob(data_path+'*.root'):
-    if  (  int(fname.split('_')[1].replace('run','')) not in run_list):
-        continue
-    dm = fname.split('_')[3].replace('.root','')
-    print(dm, "  in run ",  int(fname.split('_')[1].replace('run','')))
+def parse_string_regex(
+    s,
+    regexp
+) :
     
-    f = ROOT.TFile.Open(fname)
+    rgx = re.compile(regexp)
+    result = [m.groupdict() for m in rgx.finditer(s)][0]
+    
+    return result
+
+for fname in glob.glob(data_path+'/*.root'):
+    
+    print(fname)
+    #if  (  int(fname.split('_')[1].replace('run','')) not in run_list):
+    #    continue
+    #dm = fname.split('_')[3].replace('.root','')
+    #print(dm, "  in run ",  int(fname.split('_')[1].replace('run','')))
+    
+    rgx_result = parse_string_regex(s = fname, regexp = "run-(?P<run>\d+)_DM-(?P<dmid>\d+)")
+    run = rgx_result["run"]
+    dm = rgx_result["dmid"]
+    
+    f = ROOT.TFile.Open(fname, "READ")
     gDeltaTTopL = f.Get('g_DeltaTTopL_module_{}'.format(dm))
     gDeltaTTopR = f.Get('g_DeltaTTopR_module_{}'.format(dm))
     gDeltaTBottomL = f.Get('g_DeltaTBottomL_module_{}'.format(dm))
-    gDeltaTBottomR = f.Get('g_DeltaTBottomL_module_{}'.format(dm))
+    gDeltaTBottomR = f.Get('g_DeltaTBottomR_module_{}'.format(dm))
     
-    htemp = ROOT.TH1F('htemp','htemp', 100, -30, -20)
+    htemp = ROOT.TH1F('htemp','htemp', 200, -30, -10)
     for g in [gDeltaTTopL, gDeltaTTopR, gDeltaTBottomL, gDeltaTBottomR]:
-        htemp.Fill( min(g.GetY()) )
+        #print(g.GetName(), numpy.array(g.GetY()))
+        gmin = min(g.GetY())
+        #print(g.GetName(), gmin)
+        htemp.Fill(gmin)
     deltaTempMean = htemp.GetMean()
     deltaTempRMS  = htemp.GetRMS()
     hDeltaTMean.Fill(deltaTempMean)
+    #print(deltaTempMean)
     hDeltaTRMS.Fill(deltaTempRMS)
     hDeltaTTopLRatio.Fill(gDeltaTTopL.Eval(time2)/gDeltaTTopL.Eval(time1))
     hDeltaTTopRRatio.Fill(gDeltaTTopR.Eval(time2)/gDeltaTTopR.Eval(time1))

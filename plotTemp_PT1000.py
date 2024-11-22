@@ -3,69 +3,132 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
 import argparse
+import numpy
 import os
-# import ROOT
+import re
+import ROOT
 import numpy as np
 
 
-
+class Formatter(
+    argparse.ArgumentDefaultsHelpFormatter,
+    argparse.RawTextHelpFormatter
+): pass
 
 parser = argparse.ArgumentParser(
-    description = "DM thermal test plot", 
-    formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    description = "DM thermal test plot",
+    formatter_class = Formatter
 )
+
 parser.add_argument(
-    "--run", 
-    required = True, 
-    type = int, 
+    "--run",
+    required = False,
+    type = int,
     help = "Run number"
 )
+
 parser.add_argument(
-    "--dmid", 
-    required = True, 
-    type = str, 
+    "--dmid",
+    required = False,
+    type = str,
     help = "DM ID (barcode)"
 )
+
 parser.add_argument(
-    "--batch", 
-    required = False, 
-    action = "store_true", 
-    help = "Batch mode; will not display interactive plots"
-)
-parser.add_argument(
-    "--logdir", 
-    required = False, 
-    type = str, 
-    default = "/data/QAQC_DM", 
+    "--logdir",
+    required = False,
+    type = str,
+    default = "/data/QAQC_DM",
     help = "Directory with the temperature logs"
 )
+
 parser.add_argument(
-    "--plotdir", 
-    required = False, 
-    type = str, 
-    default = "/data/QAQC_DM", 
+    "--logfile",
+    required = False,
+    type = str,
+    help = "Log file; if provided, will ignore run, dmid and logdir"
+)
+
+parser.add_argument(
+    "--regexp",
+    help = (
+        "Keyed regular expression to extract run and DM barcode from the log file name.\n"
+        "Generally the file path has the form run-[RUN]_DM-[BARCODE]"
+        "\n   "
+    ),
+    type = str,
+    required = False,
+    default = "run-(?P<run>\d+)_DM-(?P<dmid>\d+)"
+)
+
+parser.add_argument(
+    "--batch",
+    required = False,
+    action = "store_true",
+    help = "Batch mode; will not display interactive plots"
+)
+
+parser.add_argument(
+    "--plotdir",
+    required = False,
+    type = str,
+    default = "/data/QAQC_DM",
     help = "Directory to save plots in"
 )
+
 parser.add_argument(
     "--offset", 
-    required = False, 
-    action = "store_true", 
+    required = False,
+    action = "store_true",
     help = "Will do offset correction"
 )
 
-
-
 args = parser.parse_args()
 
-log_dir = args.logdir
+def str_to_float(s) :
+    
+    f = None
+    
+    try :
+        
+        f = float(s)
+    
+    except ValueError :
+        
+        print(f"Could not convert {s} to float")
+        pass
+    
+    return f
+
+def parse_string_regex(
+    s,
+    regexp
+) :
+    
+    rgx = re.compile(regexp)
+    result = [m.groupdict() for m in rgx.finditer(s)][0]
+    
+    return result
+
 plot_dir = args.plotdir
+fname_noext = None
 
-file = f"run-{args.run:04d}_DM-{args.dmid}.log"
-plot_file = f"{plot_dir}/{os.path.splitext(file)[0]}.png"
+if (args.logfile) :
+    
+    file = args.logfile
+    
+    rgx_result = parse_string_regex(file, args.regexp)
+    args.run = rgx_result["run"]
+    args.dmid = rgx_result["dmid"]
 
-graph_file = f"{plot_dir}/{os.path.splitext(file)[0]}.root"
+else :
+    log_dir = args.logdir
+    file = f"{log_dir}/run-{args.run:04d}_DM-{args.dmid}.log"
 
-file = f"{log_dir}/{file}"
+
+fname_noext = os.path.splitext(os.path.basename(file))[0]
+plot_file = f"{plot_dir}/{fname_noext}.png"
+graph_file = f"{plot_dir}/{fname_noext}.root"
 
 os.system(f"mkdir -p {plot_dir}")
 
@@ -92,26 +155,17 @@ voltages = []
 powers = []
 
 
-def str_to_float(s) :
-    
-    f = None
-    
-    try :
-        
-        f = float(s)
-    
-    except ValueError :
-        
-        print(f"Could not convert {s} to float")
-        pass
-    
-    return f
-
-
 # draw function ---file
 def graph():
     # plt.clf()
     # axes = plt.gca()
+    
+    n = len(mysecs)
+    output_file = ROOT.TFile.Open(graph_file, "RECREATE")
+    gDeltaTTopL = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTTopL))
+    gDeltaTTopR = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTTopR))
+    gDeltaTBottomL = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTBottomL))
+    gDeltaTBottomR = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTBottomR))
     
     title = f"DM {args.dmid}"
     
@@ -165,27 +219,30 @@ def graph():
     ax_lwr.text(0, -24, f"max ΔT [°C] = {DeltaTTopRMin:.2f}, {DeltaTTopRMin-DeltaTAvg:.2f} wrt avg", color = "orange")
     ax_lwr.text(0, -26, f"max ΔT [°C] = {DeltaTBottomLMin:.2f}, {DeltaTBottomLMin-DeltaTAvg:.2f} wrt avg", color = "blue")
     ax_lwr.text(0, -28, f"max ΔT [°C] = {DeltaTBottomRMin:.2f}, {DeltaTBottomRMin-DeltaTAvg:.2f} wrt avg", color = "green")
-    ax_lwr.text(0, -30, f"avg(max ΔT) [°C] = {DeltaTAvg:.2f}", color = "magenta")
-    ax_lwr.text(0, -32, f"max power [W] = {np.max(powers):.2f}", color = "black")
 
+    evaltime = 4.0
+    arr_deltaT_attime = numpy.array([gDeltaTTopL.Eval(evaltime), gDeltaTTopR.Eval(evaltime), gDeltaTBottomL.Eval(evaltime), gDeltaTBottomR.Eval(evaltime)])
+    mean_attime = numpy.mean(arr_deltaT_attime)
+    std_attime = numpy.std(arr_deltaT_attime)
+    
+    ax_lwr.text(0, -30, f"μ(max ΔT), σ(max ΔT) [°C] = {DeltaTAvg:.2f}, {DeltaTStd:.2f}", color = "magenta")
+    ax_lwr.text(0, -32, f"μ(ΔT), σ(ΔT) at {evaltime} min [°C] = {mean_attime:.2f}, {std_attime:.2f}", color = "magenta")
+    ax_lwr.text(0, -34, f"max power [W] = {np.max(powers):.2f}", color = "black")
+    
+    
     fig.tight_layout()
     fig.savefig(plot_file)
     
     print()
     print(f"Produced plot: {plot_file}")
-
+    
     #save TGraphs 
-    # n = len(mysecs)
-    # output_file = ROOT.TFile(graph_file)
-    # gDeltaTTopL = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTTopL))
-    # gDeltaTTopR = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTTopR))
-    # gDeltaTBottomL = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTBottomL))
-    # gDeltaTBottomR = ROOT.TGraph(n, np.array(mysecs), np.array(DeltaTBottomR))
-    # gDeltaTTopL.Write("g_DeltaTTopL_module_{}".format(dm))
-    # gDeltaTTopR.Write("g_DeltaTTopR_module_{}".format(dm))
-    # gDeltaTBottomL.Write("g_DeltaTBottomL_module_{}".format(dm))
-    # gDeltaTBottomR.Write("g_DeltaTBottomR_module_{}".format(dm))
-    # output_file.Close()
+    gDeltaTTopL.Write(f"g_DeltaTTopL_module_{args.dmid}")
+    gDeltaTTopR.Write(f"g_DeltaTTopR_module_{args.dmid}")
+    gDeltaTBottomL.Write(f"g_DeltaTBottomL_module_{args.dmid}")
+    gDeltaTBottomR.Write(f"g_DeltaTBottomR_module_{args.dmid}")
+    output_file.Close()
+    print(f"Produced ROOT file: {graph_file}")
 
 
     if (not args.batch) :
@@ -220,7 +277,7 @@ with open(str(file), "r") as fin:
         if len(mysecs) == 0:
             mysecs.append(0)
         else:
-            mysecs.append((mytime[-1]-mytime[0]).total_seconds()/60.)        
+            mysecs.append((mytime[-1]-mytime[0]).total_seconds()/60.)
         
         # TCopperR.append(float(readings[2]))
         # TCopperL.append(float(readings[3]))
@@ -310,13 +367,14 @@ with open(str(file), "r") as fin:
         if (TBottomR[-1]-TCopperR[-1]-offset) < DeltaTBottomRMin:
             DeltaTBottomRMin = (TBottomR[-1]-TCopperR[-1]-offset)
         
-        arr_DeltaT = np.array([DeltaTTopLMin, DeltaTTopRMin, DeltaTBottomLMin, DeltaTBottomRMin])
-        DeltaTAvg = np.average(arr_DeltaT)
-        
-
         print(str(readings[1])+" "+str(readings[2])+" "+str(readings[3])+" "+str(readings[4])+" "+str(readings[5])+" "+str(readings[6])+" "+str(readings[7]))
         
         it += 1
+    
+    #arr_DeltaT = np.array([DeltaTTopLMin, DeltaTTopRMin, DeltaTBottomLMin, DeltaTBottomRMin])
+    DeltaTMin = [min(DeltaTTopL), min(DeltaTTopR), min(DeltaTBottomL), min(DeltaTBottomR)]
+    DeltaTAvg = np.mean(DeltaTMin)
+    DeltaTStd = np.std(DeltaTMin)
 
 graph()
 # input("ok?")
