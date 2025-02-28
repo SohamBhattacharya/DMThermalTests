@@ -33,7 +33,8 @@ args = parser.parse_args()
 
 # file that contains last run number
 #outdir = "/data/QAQC_DM"
-last_run_number_file = f"{args.outdir}/lastRunNumber.txt"
+# last_run_number_file = f"{args.outdir}/lastRunNumber.txt"
+last_run_number_file = f"./lastRunNumber.txt"
 #script_dir = ("/home/cptlab1/Documents/BTL/DMThermalTests")
 script_dir = os.getcwd()
 
