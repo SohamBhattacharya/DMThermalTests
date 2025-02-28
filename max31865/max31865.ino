@@ -47,12 +47,13 @@ void setup() {
 
 
 void loop() {
-
+  //Serial.println("In loop().");
   char data = Serial.read();
   char str[2];
   str[0] = data;
   str[1] = '\0';
-
+  //printf("data %s\n", str);
+  
   if( str[0] == '1' )
   {  
     uint16_t rtd1 = thermo1.readRTD();
@@ -107,4 +108,5 @@ void loop() {
       thermo6.clearFault();
     }
   }
+  
 }

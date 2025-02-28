@@ -33,7 +33,7 @@ else:
 
 command = '1'
 
-mykey = TXP3510P("/dev/ttyACM2")
+mykey = TXP3510P("/dev/ttyACM1")
 
 while True:
     # ser.write(('1\r\n').encode())
@@ -43,10 +43,11 @@ while True:
 
     current = mykey.getCurrent()
     voltage = mykey.getVoltage()
+    #print(current, voltage)
 
     data = ser.readline()[:-2] #the last bit gets rid of the new-line chars
     #if data:
-    # 	print(data)
+    #print(data)
 
     x = ser.write(('1\r\n').encode())
     out = ''
@@ -65,7 +66,7 @@ while True:
     # print(out)
     #while ser.inWaiting() > 0:
     #    out += str(ser.read(1))
-        
+    
     if out:
         print(out)
         # logging.info(out.rstrip().lstrip(' '))

@@ -182,6 +182,8 @@ def graph():
     l_drawn_objects.extend(ax_upr_l.plot(mysecs, TTopR, color = "orange", label = "Top right RTD"))
     l_drawn_objects.extend(ax_upr_l.plot(mysecs, TBottomL, color = "blue", label = "Bottom left RTD"))
     l_drawn_objects.extend(ax_upr_l.plot(mysecs, TBottomR, color = "green", label = "Bottom right RTD"))
+
+    
     ax_upr_l.set_xlabel("Time elapsed [min]", fontdict = fontdict)
     ax_upr_l.set_ylabel("Temperature [°C]", fontdict = fontdict)
     ax_upr_l.grid()
@@ -293,12 +295,13 @@ with open(str(file), "r") as fin:
         # TBottomL.append(float(readings[0+2]))
         # TBottomR.append(float(readings[3+2]))
 
-        TCopperL.append(float(readings[4+2]))
-        TCopperR.append(float(readings[5+2]))
-        TTopL.append(float(readings[3+2]))
-        TTopR.append(float(readings[0+2]))
-        TBottomL.append(float(readings[2+2]))
-        TBottomR.append(float(readings[1+2]))
+        # the first two entries are date and time, hence +2
+        TCopperL.append(float(readings[0+2]))
+        TCopperR.append(float(readings[1+2]))
+        TTopL.append(float(readings[5+2]))
+        TTopR.append(float(readings[4+2]))
+        TBottomL.append(float(readings[3+2]))
+        TBottomR.append(float(readings[2+2]))
         
         # Exclude the unit 'A' end character
         current = str_to_float(readings[-2][:-1])

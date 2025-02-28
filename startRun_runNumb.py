@@ -22,16 +22,22 @@ parser.add_argument(
     type = str,
     help = "DM ID (barcode)"
 )
+parser.add_argument(
+    "--outdir",
+    required = True,
+    type = str,
+    help = "Output directory",
+)
 args = parser.parse_args()
 
 
 # file that contains last run number
-log_dir = "/data/QAQC_DM"
-last_run_number_file = f"{log_dir}/lastRunNumber.txt"
+#outdir = "/data/QAQC_DM"
+last_run_number_file = f"{args.outdir}/lastRunNumber.txt"
 #script_dir = ("/home/cptlab1/Documents/BTL/DMThermalTests")
 script_dir = os.getcwd()
 
-os.system(f"mkdir -p {log_dir}")
+os.system(f"mkdir -p {args.outdir}")
 
 # get last number from the txt and overwrite
 def get_next_run_number():
@@ -49,11 +55,11 @@ def get_next_run_number():
 
 new_run_number = get_next_run_number()
 
-logfile = f"{log_dir}/run-{new_run_number:04d}_DM-{args.dmid}.log"
+logfile = f"{args.outdir}/run-{new_run_number:04d}_DM-{args.dmid}.log"
 
 print(f"Starting to log: {logfile}")
 
-mykey = TXP3510P("/dev/ttyACM2")
+mykey = TXP3510P("/dev/ttyACM1")
 mykey_state = 0
 
 proc = Popen([
@@ -74,7 +80,7 @@ time.sleep(3)
 while True:
     try:
         command = "powershell -Command \"Get-Content -Path \'{0}\\run{1:04d}.log\' -Tail 1\""\
-          .format(log_dir, int(new_run_number))
+          .format(args.outdir, int(new_run_number))
         time.sleep(2)
         
         timestamp_curr = datetime.now()
